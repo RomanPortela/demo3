@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  crm:
+    build:
+      context: ./crm
+      dockerfile: Dockerfile
+    container_name: crm_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - WAHA_URL=http://waha:3000
+      - WAHA_API_KEY=${WAHA_API_KEY}
+    depends_on:
+      - waha
+
+  waha:
+    image: devlikeapro/waha
+    container_name: waha_app
+    restart: always
+    ports:
+      - "3001:3000"
+    shm_size: '2gb'
+    volumes:
+      - ./waha/waha_sessions:/app/sessions
+    environment:
+      - WAHA_LOG_LEVEL=info
+      - WAHA_RESTART_POLICY=always
+      - WAHA_PRINT_QR=true
+      - WAHA_API_KEY=${WAHA_API_KEY}
+      - WAHA_NO_API_KEY=${WAHA_NO_API_KEY}
+
+networks:
+  default:
+    name: crm_network
