@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  waha:
+    image: devlikeapro/waha
+    container_name: waha
+    restart: always
+    ports:
+      - "3001:3000"
+    shm_size: '2gb'
+    volumes:
+      - ./waha_sessions:/app/sessions
+    environment:
+      - WAHA_LOG_LEVEL=info
+      - WAHA_RESTART_POLICY=always
+      - WAHA_PRINT_QR=true
+      # Security: Use WAHA_API_KEY from .env file
+      - WAHA_API_KEY=${WAHA_API_KEY}
+      # Fallback for dev: If API Key is empty, disable auth (remove this in production if you want strict security)
+      - WAHA_NO_API_KEY=${WAHA_NO_API_KEY}
+      # Add WH_BASE_URL if you have a public endpoint for webhooks
+      # - WH_BASE_URL=https://your-crm-webhook-endpoint.com/api/whatsapp/webhook
+
+networks:
+  default:
+    name: crm_network

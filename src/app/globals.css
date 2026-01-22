@@ -1,0 +1,154 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+:root {
+  --background: oklch(0.98 0 0);
+  /* Subtle off-white */
+  --foreground: oklch(0.15 0.02 240);
+  /* Deep navy gray */
+
+  --card: rgba(255, 255, 255, 0.7);
+  /* Translucent white */
+  --card-foreground: oklch(0.15 0.02 240);
+
+  --popover: rgba(255, 255, 255, 0.9);
+  --popover-foreground: oklch(0.15 0.02 240);
+
+  --primary: oklch(0.45 0.15 250);
+  /* Royal blueish */
+  --primary-foreground: oklch(0.98 0 0);
+
+  --secondary: oklch(0.92 0.02 240);
+  --secondary-foreground: oklch(0.15 0.02 240);
+
+  --muted: oklch(0.95 0.01 240);
+  --muted-foreground: oklch(0.45 0.02 240);
+
+  --accent: oklch(0.92 0.05 250);
+  --accent-foreground: oklch(0.2 0.1 250);
+
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.05);
+  --ring: oklch(0.45 0.15 250 / 0.5);
+
+  --radius: 1rem;
+}
+
+.dark {
+  --background: oklch(0.12 0.02 240);
+  /* Deep space navy */
+  --foreground: oklch(0.95 0.01 240);
+
+  --card: rgba(30, 41, 59, 0.6);
+  /* Translucent slate */
+  --card-foreground: oklch(0.95 0.01 240);
+
+  --popover: rgba(15, 23, 42, 0.9);
+  --popover-foreground: oklch(0.95 0.01 240);
+
+  --primary: oklch(0.6 0.15 250);
+  /* Brighter indigo */
+  --primary-foreground: oklch(0.1 0.02 240);
+
+  --secondary: oklch(0.2 0.03 240);
+  --secondary-foreground: oklch(0.95 0.01 240);
+
+  --muted: oklch(0.25 0.02 240);
+  --muted-foreground: oklch(0.7 0.02 240);
+
+  --accent: oklch(0.3 0.05 250);
+  --accent-foreground: oklch(0.95 0.01 240);
+
+  --destructive: oklch(0.4 0.2 25);
+  --destructive-foreground: oklch(0.95 0.01 240);
+
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.05);
+  --ring: oklch(0.6 0.15 250 / 0.5);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+    background-image:
+      radial-gradient(at 0% 0%, rgba(var(--primary), 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(var(--primary), 0.05) 0px, transparent 50%);
+  }
+}
+
+.glass-panel {
+  @apply bg-card backdrop-blur-xl border border-border shadow-glass;
+}
+
+.glass-card {
+  @apply bg-card/50 backdrop-blur-md border border-border/50 shadow-sm hover:shadow-md transition-all duration-300;
+}
+
+@keyframes bounce-subtle {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s infinite ease-in-out;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
