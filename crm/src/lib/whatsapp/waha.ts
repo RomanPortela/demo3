@@ -2,19 +2,27 @@ import { Logger } from '../logger';
 
 const WAHA_URL = process.env.WAHA_URL || 'http://localhost:3000';
 const WAHA_API_KEY = process.env.WAHA_API_KEY || '';
+const WAHA_SESSION_NAME = process.env.WAHA_SESSION_NAME || 'default';
 
 export class WahaService {
     private baseUrl: string;
     private apiKey: string;
+    private sessionName: string;
 
     constructor() {
         this.baseUrl = WAHA_URL;
         this.apiKey = WAHA_API_KEY;
+        this.sessionName = WAHA_SESSION_NAME;
         Logger.info(`WahaService initialized`, {
             baseUrl: this.baseUrl,
             hasApiKey: !!this.apiKey,
-            apiKeyLength: this.apiKey?.length
+            apiKeyLength: this.apiKey?.length,
+            sessionName: this.sessionName
         });
+    }
+
+    getSessionName() {
+        return this.sessionName;
     }
 
 
@@ -41,7 +49,7 @@ export class WahaService {
         }
     }
 
-    async startSession(name: string = 'default') {
+    async startSession(name: string = this.sessionName) {
         try {
             Logger.info(`Starting session: ${name}`);
 
@@ -71,7 +79,7 @@ export class WahaService {
         }
     }
 
-    async getStatus(name: string = 'default') {
+    async getStatus(name: string = this.sessionName) {
         const headers = this.getHeaders();
         try {
             // Try to get session info first (more reliable in 3.0)
@@ -110,7 +118,7 @@ export class WahaService {
         }
     }
 
-    async getChats(name: string = 'default') {
+    async getChats(name: string = this.sessionName) {
         try {
             Logger.info(`Fetching chats for session: ${name}`);
             // In WAHA 3.x, the endpoint is /api/{session}/chats
@@ -127,7 +135,7 @@ export class WahaService {
             Logger.error(`Error in getChats for session: ${name}`, { error });
             return [];
         }
-    } async getMessages(chatId: string, limit: number = 50, name: string = 'default') {
+    } async getMessages(chatId: string, limit: number = 50, name: string = this.sessionName) {
         try {
             Logger.info(`Fetching messages for chat ${chatId} (limit: ${limit})`);
             const response = await fetch(`${this.baseUrl}/api/${name}/chats/${chatId}/messages?limit=${limit}`, {
@@ -146,7 +154,7 @@ export class WahaService {
     }
 
 
-    async getQr(name: string = 'default') {
+    async getQr(name: string = this.sessionName) {
         try {
             Logger.info(`Fetching QR for session: ${name}`);
             const response = await fetch(`${this.baseUrl}/api/${name}/auth/qr?format=raw`, {
@@ -179,7 +187,7 @@ export class WahaService {
         return null;
     }
 
-    async sendMessage(name: string, to: string, text: string) {
+    async sendMessage(to: string, text: string, name: string = this.sessionName) {
         try {
             Logger.info(`Sending message to ${to} via session ${name}`);
             const response = await fetch(`${this.baseUrl}/api/sendText`, {
@@ -194,7 +202,7 @@ export class WahaService {
         }
     }
 
-    async logout(name: string = 'default') {
+    async logout(name: string = this.sessionName) {
         try {
             Logger.info(`Logging out session: ${name}`);
             const response = await fetch(`${this.baseUrl}/api/sessions/${name}/logout`, {

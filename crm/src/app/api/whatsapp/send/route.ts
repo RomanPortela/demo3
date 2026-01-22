@@ -15,7 +15,7 @@ export async function POST(req: Request) {
         // 1. Send via WAHA
         const cleanPhone = chatId.replace(/\D/g, '');
         Logger.info(`Attempting to send message to ${cleanPhone}`, { conversationId });
-        const result = await waha.sendMessage('default', cleanPhone, content);
+        const result = await waha.sendMessage(cleanPhone, content);
 
         // 2. Persist in DB
         const supabase = createClient(

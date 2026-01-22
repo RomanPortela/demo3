@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         );
 
         // 1. Get chats from WAHA
-        const wahaChats = await waha.getChats('default');
+        const wahaChats = await waha.getChats();
         Logger.info(`Found ${wahaChats.length} chats in WAHA`);
 
         // Fetch all current conversations once to build a map for quick lookup

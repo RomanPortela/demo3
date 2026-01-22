@@ -4,7 +4,7 @@ import { Logger } from '@/lib/logger';
 
 export async function GET() {
     try {
-        const state = await waha.getStatus('default');
+        const state = await waha.getStatus();
         Logger.info('Session state check:', state);
 
         // Map WAHA status/state to a consistent status field
@@ -25,7 +25,7 @@ export async function GET() {
         let qr = null;
         if (currentStatus !== 'CONNECTED') {
 
-            const qrData = await waha.getQr('default');
+            const qrData = await waha.getQr();
             qr = qrData?.qr;
             if (qr) {
                 Logger.info('QR code generated successfully');
@@ -37,7 +37,7 @@ export async function GET() {
         return NextResponse.json({
             status: currentStatus,
             qr: qr,
-            session: 'default'
+            session: waha.getSessionName()
         });
     } catch (error: any) {
         Logger.error('Error in GET /api/whatsapp/session:', { error: error.message });
@@ -49,7 +49,7 @@ export async function GET() {
 export async function POST() {
     try {
         Logger.info('Manual session start requested');
-        const result = await waha.startSession('default');
+        const result = await waha.startSession();
         return NextResponse.json(result);
     } catch (error: any) {
         Logger.error('Error in POST /api/whatsapp/session:', { error: error.message });
@@ -60,7 +60,7 @@ export async function POST() {
 export async function DELETE() {
     try {
         Logger.info('Manual session logout requested');
-        const result = await waha.logout('default');
+        const result = await waha.logout();
         return NextResponse.json(result);
     } catch (error: any) {
         Logger.error('Error in DELETE /api/whatsapp/session:', { error: error.message });
