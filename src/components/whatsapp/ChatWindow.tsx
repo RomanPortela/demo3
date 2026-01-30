@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -6,7 +8,7 @@ import { WhatsAppConversation, WhatsAppMessage, Tag } from "@/types";
 import { format } from "date-fns";
 import {
     Search, MoreVertical, Paperclip, Send, RefreshCw,
-    Home, User, MessageSquare, Tag as TagIcon, Plus, X, Trash2, Check
+    Home, User, MessageSquare, Tag as TagIcon, Plus, X, Trash2, Check, CheckCheck, Smile, Shield, CheckSquare
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -23,6 +25,7 @@ import {
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 interface ChatWindowProps {
     conversation?: WhatsAppConversation;
@@ -42,58 +45,50 @@ export function ChatWindow({
     const [newMessage, setNewMessage] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    const { data: allTags } = useTags();
-    const createTagMutation = useCreateTag();
-    const deleteTagMutation = useDeleteTag();
-    const assignTagMutation = useAssignTag();
-    const removeTagMutation = useRemoveTag();
+    const [isAriaThinking, setIsAriaThinking] = useState(false);
+    const [optimisticMessages, setOptimisticMessages] = useState<WhatsAppMessage[]>([]);
 
-    const [newTagName, setNewTagName] = useState("");
+    // Reset optimistic messages when real messages change (simple sync approach)
+    useEffect(() => {
+        setOptimisticMessages([]);
+    }, [messages?.length]);
 
-    const handleCreateTag = async () => {
-        if (!newTagName.trim()) return;
-        try {
-            await createTagMutation.mutateAsync({
-                name: newTagName,
-                color: `#${Math.floor(Math.random() * 16777215).toString(16)}` // Random color
-            });
-            setNewTagName("");
-            toast.success("Etiqueta creada");
-        } catch (error) {
-            toast.error("Error al crear etiqueta");
-        }
-    };
+    const displayMessages = [...(messages || []), ...optimisticMessages];
 
-    const handleDeleteTag = async (id: number, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!confirm("¿Eliminar esta etiqueta permanentemente?")) return;
-        try {
-            await deleteTagMutation.mutateAsync(id);
-            toast.success("Etiqueta eliminada");
-        } catch (error) {
-            toast.error("Error al eliminar etiqueta");
-        }
-    };
-
-    const toggleTag = async (tag: Tag) => {
+    const handleAriaCall = async () => {
         if (!conversation) return;
-        const isAssigned = conversation.tags?.some(t => t.id === tag.id);
+        setIsAriaThinking(true);
         try {
-            if (isAssigned) {
-                await removeTagMutation.mutateAsync({ chatId: conversation.id, tagId: tag.id });
-            } else {
-                await assignTagMutation.mutateAsync({ chatId: conversation.id, tagId: tag.id });
+            const response = await fetch('/api/aria', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: conversation.phone_number,
+                    message_history: messages?.slice(-5), // Send last 5 messages context
+                    user_context: { role: 'agent' }
+                })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                // Add optimistic message
+                const newMsg: any = {
+                    id: `aria-${Date.now()}`,
+                    content: data.message,
+                    direction: 'outgoing', // technically outgoing from system/agent
+                    timestamp: new Date().toISOString(),
+                    status: 'read',
+                    is_aria: true // Custom flag for styling
+                };
+                setOptimisticMessages(prev => [...prev, newMsg]);
+                // In a real app, you'd also save this to the DB here or let the backend do it
             }
         } catch (error) {
-            toast.error("Error al actualizar etiquetas");
+            toast.error("Aria no pudo responder en este momento");
+        } finally {
+            setIsAriaThinking(false);
         }
     };
-
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollIntoView({ behavior: "auto", block: "end" });
-        }
-    }, [messages?.length]);
 
     const handleSend = () => {
         if (!newMessage.trim() || isSending) return;
@@ -103,14 +98,19 @@ export function ChatWindow({
 
     if (!conversation) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center h-full">
-                <div className="h-24 w-24 bg-primary/5 rounded-[40px] flex items-center justify-center mb-8 relative">
-                    <div className="absolute inset-0 bg-primary/10 rounded-[40px] animate-ping opacity-20" />
-                    <MessageSquare className="h-10 w-10 text-primary opacity-40" />
+            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center h-full relative overflow-hidden bg-gray-50/10">
+                {/* Subtle dot background */}
+                <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:32px_32px] opacity-10 pointer-events-none" />
+
+                <div className="relative mb-10 group">
+                    <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full scale-150 animate-pulse" />
+                    <div className="relative h-32 w-32 bg-white rounded-[2.5rem] border border-gray-100 flex items-center justify-center shadow-2xl transition-transform duration-700 group-hover:scale-110">
+                        <MessageSquare className="h-14 w-14 text-primary opacity-30" />
+                    </div>
                 </div>
-                <h3 className="text-xl font-black tracking-tight mb-2">Bandeja de Entrada</h3>
-                <p className="max-w-xs text-sm text-muted-foreground font-medium">
-                    Selecciona un chat para ver el historial y responder.
+                <h3 className="text-3xl font-black tracking-tighter mb-3">Messaging Cloud</h3>
+                <p className="max-w-xs text-muted-foreground font-medium text-lg leading-relaxed">
+                    Sincronización segura punto a punto activa. Escoge un hilo para comenzar.
                 </p>
             </div>
         );
@@ -120,183 +120,139 @@ export function ChatWindow({
     const name = lead?.full_name || conversation.contact_name || `+${conversation.phone_number}`;
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-card/50">
+        <div className="flex flex-col h-full bg-white relative">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 bg-[#F8FAFC] pointer-events-none" />
+
             {/* Chat Header */}
-            <div className="h-16 border-b border-border/40 flex items-center justify-between px-6 bg-card/40 backdrop-blur-xl z-20 shrink-0">
-                <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border border-border shadow-sm">
+            <div className="h-16 px-6 flex items-center justify-between bg-white border-b border-border/40 z-20 shrink-0 shadow-sm relative">
+                <div className="flex items-center gap-4">
+                    <Avatar className="h-10 w-10 border border-border/50 shadow-sm">
                         <AvatarImage src={lead?.avatar_url || conversation.avatar_url} />
-                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                        <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
                             {name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
                     <div>
-                        <h3 className="font-bold text-sm flex items-center gap-2">
+                        <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
                             {name}
-                        </h3>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                             {lead && (
-                                <span className={cn(
-                                    "px-1.5 py-0.5 rounded border font-medium flex items-center gap-1",
-                                    lead.lead_type === 'propietario'
-                                        ? "bg-orange-50 text-orange-600 border-orange-200"
-                                        : "bg-blue-50 text-blue-600 border-blue-200"
-                                )}>
-                                    {lead.lead_type === 'propietario'
-                                        ? <Home className="h-3 w-3" />
-                                        : <User className="h-3 w-3" />
-                                    }
+                                <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 border-emerald-200 text-emerald-600 bg-emerald-50">
                                     {lead.lead_type}
-                                </span>
+                                </Badge>
                             )}
-                            <span className="flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                En línea
-                            </span>
+                        </h3>
+                        <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            <span className="text-[10px] text-muted-foreground font-medium">Online</span>
                         </div>
                     </div>
                 </div>
-                <div className="flex gap-1 items-center">
-                    <div className="flex gap-1 mr-2 px-2 border-r border-border/40">
-                        {conversation.tags?.map(tag => (
-                            <span
-                                key={tag.id}
-                                className="text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap"
-                                style={{ backgroundColor: tag.color + '20', color: tag.color, border: `1px solid ${tag.color}40` }}
-                            >
-                                {tag.name}
-                            </span>
-                        ))}
-                    </div>
 
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary">
-                                <TagIcon className="h-4 w-4" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-3 rounded-2xl shadow-xl border-border/40" align="end">
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Etiquetas</h4>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1">
-                                    {allTags?.map(tag => {
-                                        const isAssigned = conversation.tags?.some(t => t.id === tag.id);
-                                        return (
-                                            <div key={tag.id} className="group relative">
-                                                <button
-                                                    onClick={() => toggleTag(tag)}
-                                                    className={cn(
-                                                        "text-[10px] px-2.5 py-1 rounded-lg font-bold transition-all border pr-6 w-full text-left",
-                                                        isAssigned
-                                                            ? "bg-primary text-primary-foreground border-primary"
-                                                            : "bg-accent/30 text-muted-foreground border-transparent hover:border-border"
-                                                    )}
-                                                    style={!isAssigned ? { borderLeft: `3px solid ${tag.color}` } : {}}
-                                                >
-                                                    {tag.name}
-                                                </button>
-                                                <button
-                                                    onClick={(e) => handleDeleteTag(tag.id, e)}
-                                                    className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 hover:text-destructive transition-all"
-                                                >
-                                                    <Trash2 className="h-2.5 w-2.5" />
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                    {(!allTags || allTags.length === 0) && (
-                                        <p className="text-[10px] text-muted-foreground italic p-2">No hay etiquetas creadas.</p>
-                                    )}
-                                </div>
-                                <div className="pt-2 border-t border-border/40">
-                                    <div className="flex items-center gap-1">
-                                        <Input
-                                            placeholder="Nueva etiqueta..."
-                                            className="h-8 text-xs rounded-lg"
-                                            value={newTagName}
-                                            onChange={(e) => setNewTagName(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleCreateTag()}
-                                        />
-                                        <Button
-                                            size="icon"
-                                            className="h-8 w-8 shrink-0 rounded-lg"
-                                            onClick={handleCreateTag}
-                                            disabled={!newTagName.trim() || createTagMutation.isPending}
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary">
+                <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                         <Search className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                        <User className="h-4 w-4" />
+                    </Button>
+                    {/* Aria Helper Placeholder Toggle */}
+                    <div className="w-px h-4 bg-border/60 mx-2" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                         <MoreVertical className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
 
             {/* Messaging Canvas */}
-            <ScrollArea className="flex-1 bg-slate-50 dark:bg-slate-950">
+            <ScrollArea className="flex-1 z-10">
                 <div className="flex flex-col gap-4 p-6 min-h-full">
-                    <div className="flex-1" /> {/* Spacer to push messages to bottom if few */}
+                    <div className="flex-1" />
                     {isLoading && (
-                        <div className="flex justify-center py-4">
-                            <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                        <div className="flex justify-center py-4 opacity-50">
+                            <RefreshCw className="h-5 w-5 animate-spin text-primary" />
                         </div>
                     )}
-                    {messages?.map((msg) => {
+
+                    {displayMessages.map((msg: any, index: number) => {
                         const isOutgoing = msg.direction === 'outgoing';
+                        const isAria = msg.is_aria; // Check for custom flag
+
                         return (
                             <div
                                 key={msg.id}
                                 className={cn(
-                                    "max-w-[80%] flex flex-col gap-1 relative group animate-in fade-in slide-in-from-bottom-2 duration-300",
+                                    "max-w-[85%] flex flex-col gap-1 relative group",
                                     isOutgoing ? "self-end items-end" : "self-start items-start"
                                 )}
                             >
+                                {isAria && (
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-purple-600 mb-0.5 flex items-center gap-1">
+                                        <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
+                                        Aria Suggestion
+                                    </span>
+                                )}
                                 <div className={cn(
-                                    "px-4 py-3 text-sm shadow-sm leading-relaxed break-words relative transition-transform hover:scale-[1.005]",
-                                    isOutgoing
-                                        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm"
-                                        : "bg-slate-200 dark:bg-blue-950 text-foreground dark:text-blue-50 rounded-2xl rounded-tl-sm border-none shadow-none"
+                                    "px-4 py-3 text-sm leading-relaxed shadow-sm relative transition-all duration-200",
+                                    isAria
+                                        ? "bg-gradient-to-br from-purple-50 to-white text-foreground border border-purple-100 rounded-2xl rounded-tr-sm shadow-purple-500/10"
+                                        : isOutgoing
+                                            ? "bg-[#F3E8FF] text-foreground rounded-2xl rounded-tr-sm" // My messages (Purple Light)
+                                            : "bg-white text-foreground rounded-2xl rounded-tl-sm border border-border/40" // Other messages (White/Gray)
                                 )}>
                                     {msg.content}
                                 </div>
-                                <div className="mt-0.5 flex items-center gap-1.5 px-1 opacity-60">
-                                    <span className="text-[10px] font-medium text-muted-foreground">
+                                <div className="flex items-center gap-2 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-[10px] font-medium text-muted-foreground mr-2">
                                         {format(new Date(msg.timestamp), "HH:mm")}
                                     </span>
+
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-gray-100 text-muted-foreground hover:text-primary" title="Create Task" onClick={() => toast.success("Task created from message!")}>
+                                        <CheckSquare className="h-3 w-3" />
+                                    </Button>
+
                                     {isOutgoing && (
-                                        <div className="flex -space-x-1.5">
-                                            <Check className={cn("h-3 w-3", msg.status === 'read' ? "text-blue-500" : "text-muted-foreground")} />
-                                            <Check className={cn("h-3 w-3", msg.status === 'read' ? "text-blue-500" : "text-muted-foreground")} />
+                                        <div className="flex items-center text-primary/60 ml-1">
+                                            {msg.status === 'read' ? (
+                                                <CheckCheck className="h-3 w-3" />
+                                            ) : (
+                                                <Check className="h-3 w-3" />
+                                            )}
                                         </div>
                                     )}
                                 </div>
                             </div>
                         );
                     })}
-                    <div ref={scrollRef} className="h-2" />
+
+                    {/* Aria Thinking Indicator */}
+                    {isAriaThinking && (
+                        <div className="self-start max-w-[85%] flex flex-col gap-1 relative animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="px-4 py-3 bg-white border border-purple-100 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-2">
+                                <div className="flex space-x-1">
+                                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce"></div>
+                                </div>
+                                <span className="text-xs font-medium text-purple-700">Aria is thinking...</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div ref={scrollRef} className="h-px" />
                 </div>
             </ScrollArea>
 
             {/* Smart Composer */}
-            <div className="p-4 bg-background/60 backdrop-blur-md border-t border-border/40 shrink-0">
-                <div className="flex items-end gap-2 p-2 bg-background border border-input rounded-2xl shadow-sm focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary shrink-0">
-                        <Paperclip className="h-5 w-5" />
+            <div className="p-4 bg-white border-t border-border/40 shrink-0 z-20">
+                <div className="flex items-end gap-2 bg-gray-50 border border-border/50 rounded-2xl p-2 shadow-inner focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary/20 transition-all">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-white hover:text-foreground shrink-0 transition-all">
+                        <Plus className="h-5 w-5" />
                     </Button>
                     <textarea
                         rows={1}
-                        placeholder="Escribe un mensaje..."
-                        className="flex-1 bg-transparent border-none focus:ring-0 p-2 text-sm max-h-32 min-h-[36px] resize-none placeholder:text-muted-foreground focus-visible:ring-0 outline-none"
+                        placeholder="Write a message..."
+                        className="flex-1 bg-transparent border-none focus:ring-0 px-2 py-2.5 text-sm font-medium max-h-32 min-h-[44px] resize-none placeholder:text-muted-foreground/60 focus-visible:ring-0 outline-none leading-relaxed"
                         value={newMessage}
                         onChange={(e) => {
                             setNewMessage(e.target.value);
@@ -310,17 +266,36 @@ export function ChatWindow({
                             }
                         }}
                     />
-                    <Button
-                        size="icon"
-                        className={cn(
-                            "h-9 w-9 rounded-xl shrink-0 transition-all",
-                            !newMessage.trim() && "opacity-50 grayscale"
+
+                    {/* Send Button or Aria Button logic could go here */}
+                    <div className="flex items-center gap-1">
+                        <Button
+                            className={cn(
+                                "h-10 px-4 rounded-xl font-bold text-xs shadow-lg transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white hover:opacity-90",
+                                !newMessage.trim() && "hidden"
+                            )}
+                            onClick={handleSend}
+                            disabled={isSending}
+                        >
+                            Send
+                        </Button>
+
+                        {/* ARIA Button - Always visible or when empty */}
+                        {!newMessage.trim() && (
+                            <Button
+                                className="h-10 pl-3 pr-4 rounded-xl font-bold text-xs shadow-lg transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white group relative overflow-hidden"
+                                onClick={() => toast.info("Aria integration coming soon!")}
+                            >
+                                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 ease-out" />
+                                <div className="flex items-center gap-2">
+                                    <div className="h-5 w-5 rounded-lg bg-white/20 flex items-center justify-center">
+                                        <svg viewBox="0 0 24 24" fill="none" className="w-3 h-3 text-white" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5c0-5 5-5 5-5" /></svg>
+                                    </div>
+                                    <span>Aria</span>
+                                </div>
+                            </Button>
                         )}
-                        onClick={handleSend}
-                        disabled={!newMessage.trim() || isSending}
-                    >
-                        {isSending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    </Button>
+                    </div>
                 </div>
             </div>
         </div>

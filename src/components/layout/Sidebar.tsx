@@ -15,6 +15,9 @@ import {
     ChevronLeft,
     ChevronRight,
     Home,
+    CalendarDays,
+    Globe,
+    Key,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -33,11 +36,15 @@ const navItems: NavItem[] = [
     { title: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['ADMIN', 'CAPTADOR', 'AGENTE'] },
     { title: 'Leads', href: '/leads', icon: Users, roles: ['ADMIN', 'AGENTE', 'CAPTADOR'] },
     { title: 'Propiedades', href: '/properties', icon: Home, roles: ['ADMIN', 'AGENTE', 'CAPTADOR'] },
+    { title: 'Alquileres', href: '/rentals', icon: Key, roles: ['ADMIN', 'AGENTE', 'CAPTADOR'] },
     { title: 'Oportunidades', href: '/opportunities', icon: Lightbulb, roles: ['ADMIN', 'CAPTADOR', 'AGENTE'] },
     { title: 'Clientes', href: '/clients', icon: UserCircle, roles: ['ADMIN', 'AGENTE'] },
     { title: 'Tareas', href: '/tasks', icon: CheckSquare, roles: ['ADMIN', 'CAPTADOR', 'AGENTE'] },
     { title: 'WhatsApp', href: '/whatsapp', icon: MessageSquare, roles: ['ADMIN', 'CAPTADOR', 'AGENTE'] },
     { title: 'Tracking', href: '/tracking', icon: BarChart3, roles: ['ADMIN', 'AGENTE', 'CAPTADOR'] },
+    { title: 'Calendario', href: '/calendar', icon: CalendarDays, roles: ['ADMIN', 'AGENTE', 'CAPTADOR'] },
+    { title: 'Documentos', href: '/documents', icon: FileText, roles: ['ADMIN', 'AGENTE', 'CAPTADOR'] },
+    { title: 'Portales', href: '/portals', icon: Globe, roles: ['ADMIN', 'AGENTE'] },
     { title: 'Contenido', href: '/content', icon: FileText, roles: ['ADMIN', 'CAPTADOR'] },
     { title: 'Equipo', href: '/team', icon: Users2, roles: ['ADMIN'] },
 ];

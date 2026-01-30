@@ -1,0 +1,152 @@
+# Documentación Técnica y Funcional: CRM Inmobiliario InmoAria
+
+Este documento detalla cada una de las secciones principales del sistema, sus funcionalidades clave y las métricas que permiten medir su rendimiento.
+
+---
+
+## 1. Dashboard (Panel Principal)
+El centro de mando del sistema que ofrece una visión global y en tiempo real del estado de la inmobiliaria.
+
+### Funcionalidades:
+- **Resumen Estadístico**: Visualización de KPIs principales como ingresos proyectados, leads nuevos y visitas programadas.
+- **Gráficos de Rendimiento**: Representación visual del embudo de ventas y la actividad de los agentes.
+- **Actividad Reciente**: Feed dinámico que muestra las últimas interacciones con leads y cambios en propiedades.
+
+### Métricas:
+- **Tasa de Conversión**: Porcentaje de leads que pasan a ser clientes.
+- **Volumen de Negocio**: Valor total de las propiedades en cartera activa.
+- **Nivel de Actividad**: Número de interacciones diarias/semanales.
+
+---
+
+## 2. Leads (Gestión de Prospectos)
+Módulo crítico para la captura y calificación de posibles compradores o vendedores.
+
+### Funcionalidades:
+- **Gestión de Estados (Kanban)**: Flujo visual para mover prospectos desde "Nuevo" hasta "Cierre".
+- **Segmentación por Tipo**: Clasificación entre "Prospecto" (demanda) y "Propietario" (oferta).
+- **Seguimiento Automatizado**: Registro de llamadas, correos y notas internas.
+- **Calificación por Interés**: Etiquetas niveles de urgencia e interés (Alto, Medio, Bajo).
+
+### Métricas:
+- **Lead Response Time**: Tiempo promedio en contactar a un nuevo prospecto.
+- **Eficiencia del Canal**: Origen del lead (Instagram, Web, Portales) con mayor retorno.
+- **Tasa de Calificación**: Porcentaje de leads que cumplen con el perfil de cliente ideal.
+
+---
+
+## 3. Propiedades (Gestión de Activos)
+Inventario completo de los activos inmobiliarios disponibles para venta o alquiler.
+
+### Funcionalidades:
+- **Ficha Técnica Detallada**: Registro de m², ambientes, antigüedad, amenities y ubicación georeferenciada.
+- **Gestión Multimedia**: Galería de fotos de alta resolución, videos y tours virtuales.
+- **Control de Visibilidad**: Estados de disponibilidad (Disponible, Reservada, Vendida) y visibilidad de mercado.
+- **Relación Comercial**: Seguimiento de tasaciones y honorarios pactados.
+
+### Métricas:
+- **Time on Market**: Días promedio que una propiedad permanece activa antes de venderse.
+- **Ratio de Visitas/Venta**: Cuántas visitas físicas se requieren en promedio para cerrar una operación.
+- **Stock por Zona/Tipo**: Concentración del inventario para identificar nichos desatendidos.
+
+---
+
+## 4. Oportunidades (IA y Sugerencias)
+Módulo inteligente para identificar posibles cierres de negocio.
+
+### Funcionalidades:
+- **Matching Inteligente**: Cruce automático entre las necesidades de los prospectos y las propiedades disponibles.
+- **Consejos de IA**: Sugerencias sobre qué propiedad recomendar a qué cliente basándose en su comportamiento.
+- **Cierre de Brechas**: Alertas sobre propiedades que podrían interesar a leads "fríos".
+
+### Métricas:
+- **Relevancia del Matching**: Porcentaje de sugerencias aceptadas por los agentes.
+- **Velocidad de Oportunidad**: Tiempo desde que surge una necesidad hasta que se presenta una oferta.
+
+---
+
+## 5. Clientes (Base de Datos de Relaciones)
+Gestión de contactos a largo plazo y fidelización.
+
+### Funcionalidades:
+- **Historial de Transacciones**: Registro de todas las compras, ventas o alquileres realizados por el cliente.
+- **Preferencias VIP**: Almacenamiento de gustos específicos para futuras búsquedas.
+- **Propuestas Enviadas**: Control de ofertas económicas y negociaciones abiertas.
+
+### Métricas:
+- **Valor de Vida del Cliente (LTV)**: Ingresos generados por un cliente a través de múltiples operaciones.
+- **Tasa de Recurrencia/Referidos**: Clientes que vuelven a operar o traen nuevos prospectos.
+
+---
+
+## 6. Tareas (Gestión de Procesos)
+Organización del trabajo diario y coordinación del equipo.
+
+### Funcionalidades:
+- **Listas de Verificación (Subtareas)**: Desglose de procesos complejos en pasos accionables.
+- **Priorización y Plazos**: Niveles de importancia (Baja, Media, Alta) y fechas de vencimiento.
+- **Asignación de Responsables**: Control de carga de trabajo por agente.
+
+### Métricas:
+- **Tasa de Cumplimiento**: Porcentaje de tareas completadas a tiempo.
+- **Productividad por Agente**: Volumen de tareas gestionadas exitosamente.
+
+---
+
+## 7. WhatsApp (Integración WAHA)
+Comunicación en tiempo real integrada directamente en el flujo de trabajo.
+
+### Funcionalidades:
+- **Sincronización de Chats**: Chat unificado que permite responder desde el CRM.
+- **Vinculación con Leads**: Los mensajes se guardan automáticamente en la ficha del lead correspondiente.
+- **Gestión de Estados de Envío**: Confirmación de lectura y recepción.
+
+### Métricas:
+- **Volumen de Mensajes**: Cantidad de comunicaciones diarias por canal.
+- **Engagement**: Frecuencia de respuesta de los prospectos vía WhatsApp vs otros canales.
+
+---
+
+## 8. Tracking y Embudos (Performance)
+Análisis estadístico profundo del rendimiento del negocio.
+
+### Funcionalidades:
+- **Snapshots del Funnel**: Capturas diarias de cuántos contactos hay en cada etapa del embudo.
+- **Tasa de Abandono (Churn)**: Identificación de en qué etapa exacta se pierden los leads.
+
+### Métricas:
+- **Conversión de Etapa**: Porcentaje de avance de "Contacto" a "Visita" y de "Visita" a "Cierre".
+- **KPIs por Agente**: Comparativa de rendimiento individual.
+
+---
+
+## 9. Calendario y Agenda
+Coordinación de eventos y visitas.
+
+### Funcionalidades:
+- **Programación de Visitas**: Calendario visual para evitar solapamientos.
+- **Recordatorios**: Alertas sobre próximos eventos y seguimientos pendientes.
+
+### Métricas:
+- **Tasa de Asistencia**: Porcentaje de visitas programadas que efectivamente se realizan.
+
+---
+
+## 10. Contenido y Marketing
+Gestión de la presencia digital.
+
+### Funcionalidades:
+- **Campañas de Email**: Creación y seguimiento de envíos masivos.
+- **Planificación de Redes**: Borradores y programación de contenido.
+
+### Métricas:
+- **Open Rate / Click Rate**: Rendimiento de las campañas enviadas desde el sistema.
+
+---
+
+## 11. Equipo (Gestión Administrativa)
+Control de roles y permisos del personal.
+
+### Funcionalidades:
+- **Roles Definidos**: Admin, Captador y Agente con permisos específicos.
+- **Avatar y Perfiles**: Identidad visual para cada miembro del equipo.

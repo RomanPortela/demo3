@@ -8,6 +8,12 @@ export interface Profile {
     phone?: string;
     avatar_url?: string;
     created_at: string;
+    // Commercial Conditions
+    commission_type?: 'percentage' | 'fixed' | 'mixed';
+    base_commission_percentage?: number;
+    base_commission_fixed?: number;
+    base_collaboration_share?: number;
+    commercial_notes?: string;
 }
 
 export interface LeadColumn {
@@ -101,6 +107,13 @@ export interface Lead {
     attachment_urls?: string[];
     extra_info?: string;
 
+    // Situational Fields
+    is_hurried?: 'Sí' | 'No' | 'No sabe';
+    legal_problem?: 'Ninguno' | 'Herencia' | 'Divorcio' | 'Sucesión' | 'Otro';
+    legal_problem_other?: string;
+    has_other_agency?: 'Sí' | 'No' | 'No sabe';
+    is_price_out_of_market?: boolean;
+
     // Relations
     properties?: Property[];
     property_ids?: number[];
@@ -149,11 +162,26 @@ export interface Property {
     private_notes?: string;
     agent_observations?: string;
 
+    // Portal Info
+    zonaprop_status?: 'idle' | 'published' | 'error';
+    zonaprop_url?: string;
+
     // Multimedia
     multimedia?: PropertyMultimedia[];
 
     created_at: string;
     updated_at: string;
+
+    // Fees and Commissions
+    fee_type?: 'percentage' | 'fixed' | 'mixed';
+    agreed_fee_percentage?: number;
+    agreed_fee_fixed?: number;
+    fee_payer?: 'comprador' | 'vendedor' | 'ambos';
+    fee_notes?: string;
+    real_fee_collected?: number;
+    collection_date?: string;
+    collection_status?: 'pendiente' | 'parcial' | 'cobrado';
+    collection_notes?: string;
 }
 
 export interface PropertyMultimedia {
@@ -186,6 +214,23 @@ export interface Visit {
     property?: Property;
 }
 
+export interface PropertyAssignment {
+    id: number;
+    property_id: number;
+    agent_id: string; // user_id (UUID)
+    role: 'captador' | 'vendedor' | 'colaborador' | 'referidor';
+    commission_type?: 'percentage' | 'fixed' | 'mixed';
+    agreed_commission_percentage?: number;
+    agreed_commission_fixed?: number;
+    commission_status?: 'pendiente' | 'parcial' | 'pagada';
+    paid_amount?: number;
+    observations?: string;
+    created_at: string;
+    updated_at: string;
+    // Joined data
+    agent?: Profile;
+}
+
 export interface Client {
     id: number;
     property_type: string;
@@ -200,6 +245,38 @@ export interface Client {
     contract_due_day?: number;
     next_contract_date?: string;
     notes?: string;
+    customer_status?: 'Activo' | 'Dormido' | 'Ex cliente' | 'Inversor';
+    // Enhanced Client Fields
+    is_vip?: boolean;
+    transactions_count?: number;
+    last_transaction_date?: string;
+
+    // Budget & Preferences (from Lead)
+    min_budget?: number;
+    max_budget?: number;
+    zones_interest?: string[];
+    property_types_interest?: string[];
+    bedrooms_needed?: string;
+    description?: string;
+    family_composition?: string;
+
+    // Contact & Relations
+    proposals?: ClientProposal[];
+
+    created_at: string;
+}
+
+export interface ClientProposal {
+    id: number;
+    client_id: number;
+    property_id?: number;
+    property_address?: string; // Fallback if no ID
+    status: 'Pendiente' | 'Aceptada' | 'Rechazada' | 'En Negociación';
+    type: 'Venta' | 'Alquiler';
+    price: number;
+    currency: string;
+    notes?: string;
+    sent_date: string;
     created_at: string;
 }
 
@@ -338,4 +415,121 @@ export interface WhatsAppMessage {
     timestamp: string;
     waha_message_id?: string;
     status?: 'sent' | 'delivered' | 'read';
+}
+export interface LeadInteraction {
+    id: number;
+    lead_id: number;
+    interaction_date: string;
+    channel: string;
+    notes?: string;
+    created_at: string;
+    // New fields for linking visits
+    property_id?: number;
+    property?: Property;
+    // Audit fields
+    is_edited: boolean;
+    is_deleted: boolean;
+}
+
+export interface LeadInteractionAudit {
+    id: number;
+    interaction_id: number;
+    action_type: 'EDIT' | 'DELETE' | 'RESTORE';
+    old_content: Partial<LeadInteraction> | null;
+    new_content: Partial<LeadInteraction> | null;
+    reason: string;
+    changed_by?: string;
+    created_at: string;
+}
+
+// --- Rentals Module ---
+
+export type RentalStatus = 'activo' | 'finalizado' | 'rescindido' | 'en_mora';
+export type RentalPaymentStatus = 'pendiente' | 'parcial' | 'cobrado' | 'atrasado';
+
+export interface RentalContract {
+    id: number;
+    property_id: number;
+    owner_id: number; // Lead with lead_type='propietario'
+    tenant_id: number; // Lead with lead_type='prospecto'
+    agent_id: string; // user_id
+    status: RentalStatus;
+    start_date: string;
+    end_date: string;
+    duration_months: number;
+    adjustment_type: 'fijo' | 'ipc' | 'icl' | 'otro';
+    adjustment_frequency: 'mensual' | 'trimestral' | 'cuatrimestral' | 'semestral' | 'anual';
+    base_amount: number;
+    currency: string;
+    agency_commission_percentage: number;
+    agent_commission_percentage: number; // Percentage of the agency_commission
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+    // Joined data
+    property?: Property;
+    owner?: Lead;
+    tenant?: Lead;
+    agent?: Profile;
+}
+
+export interface RentalPayment {
+    id: number;
+    contract_id: number;
+    period: string; // ISO Date (usually first day of month)
+    due_date: string;
+    amount_rent: number;
+    amount_late_fees: number;
+    total_to_collect: number;
+    status: RentalPaymentStatus;
+    amount_collected: number;
+    collected_at?: string;
+    payment_method?: string;
+    notes?: string;
+    // Calculated financials
+    agency_commission_amount?: number;
+    agent_commission_amount?: number;
+    owner_net_amount?: number;
+    created_at: string;
+    updated_at: string;
+    // Joined data
+    contract?: RentalContract;
+}
+// --- Document Management System ---
+
+export type DocumentType = 'boleto' | 'reserva' | 'contrato' | 'señal' | 'pdf_firmado' | 'identidad' | 'garantia' | 'otro';
+export type DocumentStatus = 'borrador' | 'en_revision' | 'firmado' | 'vencido';
+
+export interface Document {
+    id: number;
+    name: string;
+    type: DocumentType;
+    status: DocumentStatus;
+    storage_path: string;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+    created_by: string; // UUID
+    is_deleted: boolean;
+    // Joined data
+    versions?: DocumentVersion[];
+    relations?: DocumentRelation[];
+}
+
+export interface DocumentRelation {
+    id: number;
+    document_id: number;
+    entity_type: 'client' | 'property' | 'operation' | 'rental';
+    entity_id: number;
+    created_at: string;
+}
+
+export interface DocumentVersion {
+    id: number;
+    document_id: number;
+    storage_path: string;
+    version_number: number;
+    change_description?: string;
+    created_at: string;
+    created_by: string; // UUID
 }

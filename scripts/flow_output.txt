@@ -1,0 +1,39 @@
+﻿[dotenv@17.2.3] injecting env (9) from .env.local -- tip: ­ƒöä add secrets lifecycle management: https://dotenvx.com/ops
+=== FULL FLOW SIMULATION ===
+
+URL: https://cjbyhoiztlcwopsbwyix.supabase.co
+Key prefix: sb_publishable_8QKM2...
+
+--- Step 1: Initial Read (usePortalCredentials) ---
+Initial data: Found: frontend_test_1769293573795@example.com
+
+--- Step 2: Upsert (handleSaveCredentials) ---
+Payload: {
+  portal_name: 'zonaprop',
+  username: 'frontend_test_1769293597565@example.com',
+  password: '(hidden)',
+  is_active: true,
+  user_id: '1'
+}
+Ô£à Upsert SUCCESS: {
+  id: 3,
+  user_id: '1',
+  portal_name: 'zonaprop',
+  username: 'frontend_test_1769293597565@example.com',
+  password: '(hidden)',
+  is_active: true,
+  created_at: '2026-01-24T22:18:20.722403+00:00'
+}
+
+--- Step 3: Simulating Page Refresh (new instance) ---
+Ô£à Data FOUND after refresh: {
+  id: 3,
+  username: 'frontend_test_1769293597565@example.com',
+  is_active: true
+}
+
+--- Step 4: Query all records (sanity check) ---
+Total records in table: 1
+  - ID 3: user_id="1", portal="zonaprop", username="frontend_test_1769293597565@example.com"
+
+=== END SIMULATION ===

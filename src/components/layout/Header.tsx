@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut, User, Bell } from 'lucide-react';
 
 import { ThemeToggle } from './ThemeToggle';
+import { DollarTicker } from './DollarTicker';
 
 export function Header() {
     const { profile, signOut } = useAuth();
@@ -32,6 +33,7 @@ export function Header() {
             </div>
 
             <div className="flex items-center gap-4">
+                <DollarTicker />
                 <ThemeToggle />
 
                 <div className="h-8 w-[1px] bg-border/50 mx-2" />

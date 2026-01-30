@@ -1,0 +1,78 @@
+# Documentación Detallada: Integración con Mercado Libre Inmuebles
+
+Este documento describe la arquitectura, funcionalidades y métricas de la integración de Mercado Libre dentro del CRM Inmobiliario.
+
+---
+
+## 1. Módulo de Autenticación y Autorización (OAuth 2.0)
+La conexión con Mercado Libre utiliza el protocolo estándar OAuth 2.0 para garantizar la seguridad y privacidad de las cuentas de los usuarios.
+
+### Funcionalidades:
+- **Generación de URL de Autorización**: Sistema dinámico que construye la URL oficial de Mercado Libre Argentina (MLA), incluyendo `client_id` y `redirect_uri` seguros.
+- **Intercambio de Código (Callback)**: Endpoint que recibe el `code` temporal y lo intercambia por un `access_token` (vuelo de 6 horas) y un `refresh_token` de larga duración.
+- **Renovación Automática de Tokens**: Servicio en segundo plano que detecta tokens expirados y utiliza el `refresh_token` para obtener nuevas credenciales sin intervención del usuario.
+
+### Métricas y Lógica:
+- **Expiración de Token**: 21,600 segundos (6 horas).
+- **Persistencia**: Los tokens se almacenan en formato JSONB para permitir flexibilidad ante cambios en la API de MeLi.
+
+---
+
+## 2. Motor de Mapeo de Propiedades (Mapper Engine)
+Transforma el modelo de datos interno del CRM al formato JSON estructurado requerido por la API de Mercado Libre (`/items`).
+
+### Funcionalidades:
+- **Predicción de Categorías**: Asignación automática de `category_id` basada en el tipo de propiedad (Casas: MLA1466, Departamentos: MLA1472, Terrenos: MLA1491, etc.).
+- **Normalización de Atributos**: Mapeo de características técnicas como dormitorios, baños, superficies (m² totales y cubiertos) y cocheras a los IDs de atributos específicos de MeLi.
+- **Gestión de Multimedia**: Selección y envío de URLs de imágenes optimizadas para la visualización en el marketplace.
+- **Construcción de Títulos SEO**: Generación automática de títulos atractivos (ej: "Departamento en Venta - Palermo").
+
+### Métricas de Validación:
+- **Límite de Título**: Máximo 60 caracteres.
+- **Requisito Mínimo**: Al menos 1 imagen válida por publicación.
+- **Geocodificación**: Inyección de datos de ubicación (Ciudad, Provincia, País).
+
+---
+
+## 3. Servicio de Publicación (Publisher Service)
+Es el controlador encargado de la comunicación final con los servidores de Mercado Libre.
+
+### Funcionalidades:
+- **Publicación Hot-Swap**: Permite publicar una propiedad con un solo clic.
+- **Lógica de Re-intento (Retry Logic)**: Si una petición falla por token expirado (Error 401), el servicio refresca el token automáticamente y reintenta la publicación de forma transparente.
+- **Vinculación de IDs**: Recupera el `ID` de publicación de MeLi y el `permalink` (link público) para uso interno del CRM.
+
+### Métricas de Performance:
+- **Tiempo de Respuesta Promedio**: < 2 segundos para publicaciones nuevas.
+- **Modos de Compra**: Configurado por defecto como `classified` (Avisos Clasificados para Inmuebles).
+- **Tipos de Listado**: Soporte para `gold_premium`, `gold` y `silver`.
+
+---
+
+## 4. Interfaz de Usuario (Portal UI)
+Componente visual integrado en la pestaña "Portales" de la ficha de la propiedad.
+
+### Funcionalidades:
+- **Card de Estado**: Diseño premium con los colores institucionales de Mercado Libre (`#FFE600`) que muestra claramente si la cuenta está conectada o no.
+- **Badge de Conexión**: Indicadores visuales de "Conectado" o "No Conectado" con sincronización en tiempo real.
+- **Acciones Rápidas**:
+    - Botón **"Conectar Cuenta"**: Dispara el flujo de OAuth.
+    - Botón **"Publicar"**: Ejecuta el mapeo y envío de la propiedad.
+    - Acceso a **Ver Aviso**: Link directo a la publicación en Mercado Libre una vez creada.
+
+---
+
+## 5. Gestión de Errores y Resiliencia
+Sistema robusto para manejar fallos de red o de API.
+
+### Funcionalidades:
+- **Feedback Visual**: Notificaciones tipo "Toast" (sonner) que informan al usuario sobre el éxito o el motivo específico del error (ej: "Faltan imágenes", "Sesión expirada").
+- **Logs de Auditoría**: Registro en servidor de las causas (`cause`) devueltas por Mercado Libre para facilitar el soporte técnico.
+
+---
+
+## Métricas de Calidad de Publicación Sugeridas:
+Para que las propiedades tengan mejor ranking en Mercado Libre, el sistema sugiere:
+- Mínimo 10 fotografías.
+- Dirección exacta validada.
+- Descripción interna de más de 200 caracteres.

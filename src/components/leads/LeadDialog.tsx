@@ -1,347 +1,167 @@
-import { useForm, FormProvider } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+'use client';
+
 import { type Lead } from "@/types";
-import { useCreateLead, useUpdateLead, useLinkPropertyToLead } from "@/lib/supabase/queries";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProspectoForm, PROSPECTO_SECTIONS } from "./ProspectoForm";
 import { PropietarioForm, PROPIETARIO_SECTIONS } from "./PropietarioForm";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LeadInteractionList } from "./LeadInteractionList";
+import { VisitSchedulerInner } from "./VisitScheduler";
+import { Badge } from "@/components/ui/badge";
+import { User, Activity, Calendar, History, Smartphone, Brain, Save, X, Layers, Briefcase, MapPin, DollarSign, BarChart3, Clock, Plus, Users } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { ScrollBar } from "@/components/ui/scroll-area";
-import { VisitScheduler } from "./VisitScheduler";
-import { Calendar, MessageSquare } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useWhatsAppConversations, useCreateWhatsAppConversation } from "@/lib/supabase/queries";
-import { WhatsAppConversation } from "@/types";
-
-const formSchema = z.object({
-    lead_type: z.enum(['prospecto', 'propietario']),
-    full_name: z.string().default(""),
-    property_type: z.string().default("Departamento"),
-    owner_phone: z.string().default(""),
-    email: z.string().default(""),
-    preferred_channel: z.string().default(""),
-    language: z.string().default(""),
-    current_city: z.string().default(""),
-    source: z.string().default(""),
-    entry_date: z.string().default(""),
-    operation_type: z.string().default(""),
-    use_type: z.boolean().default(false),
-    property_types: z.array(z.string()).default([]),
-    location: z.string().default(""),
-    min_budget: z.coerce.number().default(0),
-    max_budget: z.coerce.number().default(0),
-    budget_currency: z.string().default('USD'),
-    payment_methods: z.array(z.string()).default([]),
-    payment_notes: z.string().default(""),
-    credit_preapproved: z.boolean().default(false),
-    bank: z.string().default(""),
-    down_payment: z.coerce.number().default(0),
-    urgency_level: z.enum(['Inmediata', 'Corto plazo', 'Mediano plazo', 'Sin urgencia']).default('Sin urgencia'),
-    interest_level: z.enum(['Alto', 'Medio', 'Bajo', 'Exploratorio']).default('Exploratorio'),
-    financial_status: z.enum(['Confirmada', 'Parcial', 'No confirmada']).default('No confirmada'),
-    lead_status: z.enum(['Calificado', 'En seguimiento', 'En negociación', 'Frío']).default('En seguimiento'),
-    target_date: z.string().default(""),
-    urgency_reason: z.string().default(""),
-    urgency_notes: z.string().default(""),
-    visit_date: z.string().default(""),
-    follow_up_count: z.coerce.number().default(0),
-    closure_probability: z.coerce.number().default(0),
-    objection: z.string().default(""),
-    next_follow_up: z.string().default(""),
-    follow_up_channel: z.string().default(""),
-    internal_note: z.string().default(""),
-    // Propietario specific
-    address: z.string().default(""),
-    area: z.string().default(""),
-    m2_built: z.coerce.number().default(0),
-    rooms: z.string().default(""),
-    environments: z.string().default(""),
-    bedrooms: z.string().default(""),
-    bathrooms: z.string().default(""),
-    parkings: z.string().default(""),
-    expected_price: z.coerce.number().default(0),
-    min_price_acceptable: z.coerce.number().default(0),
-    price_currency: z.string().default('USD'),
-    exclusivity: z.boolean().default(false),
-    time_to_close: z.string().default(""),
-    legal_free_of_charges: z.boolean().default(false),
-    legal_deed_available: z.boolean().default(false),
-    legal_mortgage_existing: z.boolean().default(false),
-    legal_notes: z.string().default(""),
-    motivation_reason: z.string().default(""),
-    owner_urgency_level: z.string().default(""),
-    commission_type: z.enum(['percentage', 'fixed']).default('percentage'),
-    commission_percentage_expected: z.coerce.number().default(0),
-    commission_percentage_min: z.coerce.number().default(0),
-    commission_fixed_expected: z.coerce.number().default(0),
-    commission_fixed_min: z.coerce.number().default(0),
-    publish_date: z.string().default(""),
-    extra_info: z.string().default(""),
-    property_ids: z.array(z.number()).default([]),
-}).passthrough();
+import { useForm } from "react-hook-form";
+import { Form } from "@/components/ui/form";
+import { useCreateLead, useUpdateLead } from "@/lib/supabase/queries";
+import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 interface LeadDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     lead?: Lead;
+    initialTab?: string;
 }
 
-export function LeadDialog({ open, onOpenChange, lead }: LeadDialogProps) {
+export function LeadDialog({ open, onOpenChange, lead, initialTab = "datos" }: LeadDialogProps) {
+    const isEditing = !!lead;
     const createLead = useCreateLead();
     const updateLead = useUpdateLead();
-    const linkProperty = useLinkPropertyToLead();
-    const [activeType, setActiveType] = useState<'prospecto' | 'propietario'>(lead?.lead_type || 'prospecto');
-    const [activeSection, setActiveSection] = useState<string>('basica');
-    const [isSchedulerOpen, setIsSchedulerOpen] = useState(false);
-    const router = useRouter();
-    const { data: conversations } = useWhatsAppConversations();
-    const createConversation = useCreateWhatsAppConversation();
 
-    const openWhatsApp = async () => {
-        if (!lead || !lead.owner_phone) {
-            toast.error("El lead no tiene un teléfono configurado");
-            return;
-        }
+    const [activeSection, setActiveSection] = useState('basica');
 
-        const phone = lead.owner_phone.replace(/\D/g, '');
-        // Find existing conversation
-        let conv = conversations?.find(c => c.phone_number === phone);
-
-        if (!conv) {
-            try {
-                conv = await createConversation.mutateAsync({
-                    phone_number: phone,
-                    lead_id: lead.id,
-                    last_message_at: new Date().toISOString()
-                });
-            } catch (error) {
-                toast.error("Error al iniciar conversación de WhatsApp");
-                return;
-            }
-        }
-
-        onOpenChange(false);
-        router.push(`/whatsapp?convId=${conv.id}`);
-    };
-
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema as any),
-        defaultValues: {
+    const form = useForm<Partial<Lead>>({
+        defaultValues: lead || {
             lead_type: 'prospecto',
-            property_type: "Departamento",
-            interest_level: 'Exploratorio',
-            urgency_level: 'Sin urgencia',
-            financial_status: 'No confirmada',
-            lead_status: 'En seguimiento',
-            budget_currency: 'USD',
-            price_currency: 'USD',
+            full_name: '',
+            status: 'Nuevo',
             follow_up_count: 0,
-            commission_type: 'percentage',
-            payment_methods: [],
-            property_types: [],
-            property_ids: [],
-            ...lead,
-        } as any,
+            has_control: false
+        }
     });
 
     useEffect(() => {
         if (open) {
-            form.reset({
-                lead_type: lead?.lead_type || 'prospecto',
-                property_type: lead?.property_type || "Departamento",
-                interest_level: lead?.interest_level || 'Exploratorio',
-                urgency_level: lead?.urgency_level || 'Sin urgencia',
-                financial_status: lead?.financial_status || 'No confirmada',
-                lead_status: lead?.lead_status || 'En seguimiento',
-                budget_currency: lead?.budget_currency || 'USD',
-                price_currency: lead?.price_currency || 'USD',
-                follow_up_count: lead?.follow_up_count || 0,
-                commission_type: lead?.commission_type || 'percentage',
-                payment_methods: lead?.payment_methods || [],
-                property_types: lead?.property_types || [],
-                property_ids: lead?.property_ids || [],
-                ...lead,
-            } as any);
-            setActiveType(lead?.lead_type || 'prospecto');
+            form.reset(lead || {
+                lead_type: 'prospecto',
+                full_name: '',
+                status: 'Nuevo',
+                follow_up_count: 0,
+                has_control: false
+            });
             setActiveSection('basica');
         }
     }, [open, lead, form]);
 
-    async function onSubmit(data: z.infer<typeof formSchema>) {
+    const onSubmit = async (data: Partial<Lead>) => {
         try {
-            const { property_ids, ...values } = data as any;
-            let result;
-            if (lead) {
-                result = await updateLead.mutateAsync({ id: lead.id, ...values });
-                toast.success("Lead actualizado");
+            if (isEditing && lead?.id) {
+                await updateLead.mutateAsync({ id: lead.id, ...data });
+                toast.success("Lead actualizado correctamente");
             } else {
-                result = await createLead.mutateAsync(values);
-                toast.success("Lead creado");
+                await createLead.mutateAsync(data);
+                toast.success("Lead creado correctamente");
             }
-
-            if (property_ids && property_ids.length > 0 && result) {
-                await Promise.all(property_ids.map((pid: number) =>
-                    linkProperty.mutateAsync({
-                        lead_id: result.id,
-                        property_id: pid,
-                        relation_type: activeType === 'propietario' ? 'propietario' : 'interesado'
-                    })
-                ));
-            }
-
             onOpenChange(false);
         } catch (error) {
             console.error(error);
-            toast.error("Error al guardar");
+            toast.error("Error al guardar el lead");
         }
-    }
+    };
 
-    const currentSections = activeType === 'prospecto' ? PROSPECTO_SECTIONS : PROPIETARIO_SECTIONS;
+    const sections = lead?.lead_type === 'propietario' ? PROPIETARIO_SECTIONS : PROSPECTO_SECTIONS;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[1000px] p-0 overflow-hidden bg-background border-none shadow-2xl h-[90vh] flex flex-col">
-                <DialogHeader className="px-8 pt-8 pb-4">
-                    <div className="flex items-center justify-between">
-                        <DialogTitle className="text-3xl font-black tracking-tight text-foreground">
-                            {lead ? "Editar Lead" : "Nuevo Lead Inmobiliario"}
-                        </DialogTitle>
-                        {lead && (
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    type="button"
-                                    onClick={openWhatsApp}
-                                    variant="outline"
-                                    className="h-10 rounded-xl border-primary/20 text-primary hover:bg-primary/5 font-black text-[10px] uppercase tracking-widest gap-2"
-                                >
-                                    <MessageSquare className="h-3.5 w-3.5" />
-                                    WhatsApp
-                                </Button>
-                                <Button
-                                    type="button"
-                                    onClick={() => setIsSchedulerOpen(true)}
-                                    className="h-10 rounded-xl bg-primary text-white hover:bg-primary/90 border-none font-black text-[10px] uppercase tracking-widest gap-2 shadow-lg hover:shadow-primary/20"
-                                >
-                                    <Calendar className="h-3.5 w-3.5" />
-                                    Programar Visita
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                </DialogHeader>
+            {/* 
+                CRITICAL FIX: Overriding sm:max-w-lg from base component 
+                Using max-w-none and sm:max-w-none to ensure the modal fills the screen area.
+            */}
+            <DialogContent className="max-w-none sm:max-w-none w-[97vw] h-[95vh] p-0 overflow-hidden bg-white border-none shadow-[0_25px_100px_rgba(0,0,0,0.15)] rounded-[24px]">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full relative bg-white">
 
-                {lead && (
-                    <VisitScheduler
-                        lead={lead}
-                        open={isSchedulerOpen}
-                        onOpenChange={setIsSchedulerOpen}
-                    />
-                )}
+                        {/* Botón de Cierre Minimalista */}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => onOpenChange(false)}
+                            className="absolute top-6 right-8 h-12 w-12 rounded-full hover:bg-rose-50 hover:text-rose-500 transition-colors z-[100] bg-white/80 backdrop-blur-sm shadow-sm"
+                        >
+                            <X className="h-6 w-6" />
+                        </Button>
 
-                <FormProvider {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit as any)} className="flex-1 overflow-hidden flex flex-col">
-                        {/* Selector Principal: Demandante / Propietario */}
-                        <div className="px-8 mb-6">
-                            {!lead && (
-                                <div className="flex p-1 bg-muted/50 rounded-2xl w-full max-w-sm">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setActiveType('prospecto');
-                                            form.setValue('lead_type', 'prospecto');
-                                            setActiveSection('basica');
-                                        }}
-                                        className={cn(
-                                            "flex-1 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                                            activeType === 'prospecto' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
-                                        )}
-                                    >
-                                        Demandante
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setActiveType('propietario');
-                                            form.setValue('lead_type', 'propietario');
-                                            setActiveSection('propietario-info');
-                                        }}
-                                        className={cn(
-                                            "flex-1 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                                            activeType === 'propietario' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
-                                        )}
-                                    >
-                                        Propietario
-                                    </button>
+                        {/* Layout Principal Ampliado: Sidebar + Contenido de Ancho Completo */}
+                        <div className="flex-1 flex overflow-hidden">
+
+                            {/* Sidebar de Navegación "EXPEDIENTE" */}
+                            <div className="w-[350px] flex flex-col p-8 gap-3 shrink-0 overflow-y-auto no-scrollbar bg-gray-50/20 border-r border-gray-100">
+                                <div className="px-2 mb-4">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">EXPEDIENTE DIGITAL</h3>
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Menú Secundario Horizontal (Tabs) */}
-                        <div className="border-b border-border/50 bg-muted/10">
-                            <ScrollArea className="w-full">
-                                <div className="flex px-8 h-12 items-center">
-                                    {currentSections.map((section) => {
-                                        const Icon = section.icon;
-                                        const isActive = activeSection === section.id;
-                                        return (
-                                            <button
-                                                key={section.id}
-                                                type="button"
-                                                onClick={() => setActiveSection(section.id)}
-                                                className={cn(
-                                                    "flex items-center gap-2 px-4 h-full text-[10px] font-black uppercase tracking-widest border-b-2 transition-all shrink-0",
-                                                    isActive
-                                                        ? "border-primary text-primary bg-primary/5"
-                                                        : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                                )}
-                                            >
-                                                <Icon className={cn("h-3.5 w-3.5", isActive ? "text-primary" : "text-muted-foreground")} />
+                                {sections.map((section) => (
+                                    <button
+                                        key={section.id}
+                                        type="button"
+                                        onClick={() => setActiveSection(section.id)}
+                                        className={cn(
+                                            "flex items-center gap-5 p-4 rounded-[20px] transition-all duration-400 text-left group",
+                                            activeSection === section.id
+                                                ? "bg-white shadow-[0_15px_30px_rgba(0,0,0,0.06)] scale-[1.03] border border-gray-100"
+                                                : "hover:bg-white/60 text-gray-400"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "h-12 w-12 rounded-[16px] flex items-center justify-center transition-all duration-400 shadow-sm",
+                                            activeSection === section.id ? "bg-[#7C3AED] text-white shadow-lg shadow-[#7C3AED]/20" : "bg-gray-100 group-hover:bg-gray-200"
+                                        )}>
+                                            <section.icon className="h-6 w-6" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className={cn(
+                                                "text-lg font-black tracking-tight leading-none",
+                                                activeSection === section.id ? "text-[#111827]" : "group-hover:text-gray-600 transition-colors"
+                                            )}>
                                                 {section.label}
-                                            </button>
-                                        );
-                                    })}
+                                            </span>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-[#7C3AED]/30 mt-1">Gestión Activa</span>
+                                        </div>
+                                    </button>
+                                ))}
+
+                                <div className="mt-auto pt-8">
+                                    <Button
+                                        type="submit"
+                                        disabled={updateLead.isPending || createLead.isPending}
+                                        className="h-20 w-full rounded-[24px] bg-[#7C3AED] hover:bg-[#7C3AED]/90 text-white shadow-2xl shadow-[#7C3AED]/15 font-black text-sm uppercase tracking-[0.1em] gap-3 group transition-all"
+                                    >
+                                        <Save className="h-6 w-6 group-hover:scale-110 transition-transform" />
+                                        Actualizar Expediente
+                                    </Button>
                                 </div>
-                                <ScrollBar orientation="horizontal" />
-                            </ScrollArea>
+                            </div>
+
+                            {/* Panel de Contenido de Máxima Visibilidad */}
+                            <div className="flex-1 flex flex-col min-w-0 bg-white">
+                                <ScrollArea className="flex-1 custom-scrollbar">
+                                    <div className="p-16 pt-24 w-full max-w-[1600px] mx-auto"> {/* Contenido masivo y centrado */}
+                                        <div className="bg-white">
+                                            {form.watch('lead_type') === 'propietario' ? (
+                                                <PropietarioForm activeTab={activeSection} leadId={lead?.id} />
+                                            ) : (
+                                                <ProspectoForm activeTab={activeSection} leadId={lead?.id} />
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="h-24" />
+                                </ScrollArea>
+                            </div>
                         </div>
 
-                        {/* Área de Contenido */}
-                        <ScrollArea className="flex-1 px-8 bg-card/10">
-                            <div className="max-w-2xl mx-auto py-6">
-                                {activeType === 'prospecto' ? (
-                                    <ProspectoForm activeTab={activeSection} />
-                                ) : (
-                                    <PropietarioForm activeTab={activeSection} />
-                                )}
-                            </div>
-                        </ScrollArea>
-
-                        <DialogFooter className="px-8 py-6 bg-background border-t border-border/50">
-                            <Button variant="ghost" type="button" onClick={() => onOpenChange(false)} className="rounded-xl font-bold h-12 px-6">
-                                Cancelar
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={createLead.isPending || updateLead.isPending}
-                                className="rounded-xl font-black uppercase tracking-widest px-10 h-12 bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20"
-                            >
-                                {createLead.isPending || updateLead.isPending ? "Guardando..." : lead ? "Guardar Cambios" : "Crear Lead"}
-                            </Button>
-                        </DialogFooter>
                     </form>
-                </FormProvider>
+                </Form>
             </DialogContent>
         </Dialog>
     );
